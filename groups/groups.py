@@ -1,4 +1,6 @@
 from numbers import Integral
+import numpy as np
+from numpy.linalg import det
 
 
 class Element:
@@ -19,27 +21,50 @@ class Element:
     def __repr__(self):
         return f"{type(self).__name__}({self.group}, {self.value})"
 
-    
-class CyclicGroup:
-    def __init__(self, order):
-        self.order = order
 
-    def _validate(self, value):
-        if not isinstance(value, Integral):
-            raise TypeError(f"Value must be an integer, not a {type(value).__name__}")
-            
-        elif not 0 <= value < self.order:
-            raise ValueError(f"Value must be an integer in the range [0, {self.order}) ")
-
-    def operation (self, a, b):
-        return (a + b) % self.order
+class Group:
+    def __init__(self, n):
+        self.n = n
 
     def __call__(self, value):
         return Element(self, value)
 
-    def __str__(self):
-        return f"Z/{self.order}Z"
-
     def __repr__(self):
-        return f"{type(self).__name__}({self.value})"
-    
+        return f"{type(self).__name__}({self.n})"
+
+    def __str__(self):
+        return f"{self.symbol}{self.n}"
+
+
+class CyclicGroup(Group):
+    symbol = 'Z'
+
+    def _validate(self, value):
+        if not isinstance(value, Integral):
+            raise TypeError(f"Value must be an integer,"
+                            f" not a {type(value).__name__}")
+
+        elif not 0 <= value < self.n:
+            raise ValueError(f"Value must be an integer in the"
+                             f"range [0, {self.n}) ")
+
+    def operation(self, a, b):
+        return (a + b) % self.n
+
+
+class GeneralLinearGroup(Group):
+    symbol = "GL"
+
+    def _validate(self, value):
+        if not isinstance(value, np.ndarray):
+            raise TypeError(f"Value must be an array,"
+                            f" not a {type(value).__name__}")
+
+        elif not value.shape == (self.n, self.n):
+            raise ValueError(f"Value must be an {self.n}x{self.n} matrix")
+
+        elif det(value) == 0:
+            raise ValueError("Matrix has to be invertible")
+
+    def operation(self, a, b):
+        return a @ b
